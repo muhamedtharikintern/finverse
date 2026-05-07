@@ -1,16 +1,23 @@
 import express from "express";
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import dotenv from "dotenv";
 
 import Payment from "../models/payment.js";
 
 const router = express.Router();
 
 // Razorpay instance
-const razorpay = new Razorpay({
-  key_id: process.env.KEY_ID,
-  key_secret: process.env.KEY_SECRET,
-});
+let razorpay;
+
+if (process.env.KEY_ID && process.env.KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: process.env.KEY_ID,
+    key_secret: process.env.KEY_SECRET,
+  });
+} else {
+  console.error("Razorpay keys missing in environment variables");
+}
 
 // CREATE ORDER
 router.post("/order", async (req, res) => {
