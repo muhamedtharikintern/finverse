@@ -31,9 +31,10 @@ router.get("/me", async (req, res, next) => {
 
 router.put("/me", async (req, res, next) => {
   try {
-    const { displayName, email } = req.body || {};
+    const { displayName, email, mobileno } = req.body || {};
     const updates = {};
     if (typeof displayName === "string") updates.displayName = displayName;
+    if(typeof mobileno == "string") updates.mobileno = mobileno;
     if (typeof email === "string") {
       const normalized = email.trim().toLowerCase();
       // ensure email uniqueness excluding current user
@@ -44,9 +45,9 @@ router.put("/me", async (req, res, next) => {
       updates.email = normalized;
     }
     const user = await User.findByIdAndUpdate(req.userId, { $set: updates }, { new: true }).select(
-      "email displayName"
+      "email displayName mobileno"
     );
-    return res.json({ id: user.id, email: user.email, displayName: user.displayName });
+    return res.json({ id: user.id, email: user.email, displayName: user.displayName, mobileno: user.mobileno});
   } catch (e) {
     next(e);
   }

@@ -23,6 +23,7 @@ import { useScreenPrivacy } from './useScreenPrivacy';
 import 'react-native-gesture-handler';
 // import RazorPayScreen from './RazorPayScreen.js';
 import { API_URL } from './src/config';
+import axios from "axios";
 
 // Loading Screen Component
 const LoadingScreen = ({ onLoadingComplete, isDarkMode }) => {
@@ -60,12 +61,58 @@ const LoadingScreen = ({ onLoadingComplete, isDarkMode }) => {
 
 
 // Profile Screen Component
-const EditProfileScreen = ({ isDarkMode, onBack, onSave, initialName, initialEmail }) => {
+const EditProfileScreen = ({ isDarkMode, onBack, onSave, initialName, initialEmail, initialMobileno}) => {
   const textColor = isDarkMode ? '#fff' : '#0b1220';
   const mutedColor = isDarkMode ? '#aeb4c1' : '#6b7280';
   const surface = isDarkMode ? '#111827' : '#ffffff';
   const [name, setName] = useState(initialName || '');
   const [email, setEmail] = useState(initialEmail || '');
+  const [mobileno, setMobileno] = useState(initialMobileno || '');
+  const [loading, setLoading] = useState(false);
+
+  const updateProfile = async() =>{
+    try{
+      setLoading(true);
+
+      // get token
+      const token = await SecureStore.getItemAsync("token");
+
+      const response = await axios.put(`${API_URL}/profile/me`,
+        {
+          displayName: name.trim(),
+          email: email.trim().toLowerCase(),
+          mobileno: mobileno.trim(),
+        },
+        {
+          headers:{
+            Authorization : `Bearer ${token}`,
+            "Content-Type":"application/json",
+          },
+        }
+      );
+      console.log("Updated: ",response.data);
+
+      if(onSave){
+        onSave({
+          name: response.data.displayName,
+          email: response.data.email,
+          mobileno: response.data.mobileno,
+        });
+      }
+
+      alert("Profile Updated Successfully");
+      onBack();
+
+    } catch (error){
+      console.log(error?.response?.data || error.message);
+
+      alert(error?.response?.data?.message ||"Update Failed");
+
+    } finally{
+      setLoading(false);
+    }
+  };
+
   return (
     <View style={[styles.profileContainer, isDarkMode && styles.profileContainerDark]}>
       <View style={[styles.profileHeader, { backgroundColor: surface, borderBottomColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
@@ -88,8 +135,14 @@ const EditProfileScreen = ({ isDarkMode, onBack, onSave, initialName, initialEma
             <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Enter email" placeholderTextColor={mutedColor} style={[styles.searchInput, { color: textColor, backgroundColor: 'transparent', paddingHorizontal: 0 }]} />
           </View>
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={() => onSave && onSave({ name: name.trim(), email: email.trim().toLowerCase() })}>
-          <Text style={styles.logoutButtonText}>Save</Text>
+          <View style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.menuItemText, { color: mutedColor, marginBottom: 6 }]}>Enter mobile no</Text>
+            <TextInput value={mobileno} onChangeText={setMobileno} placeholder="Enter mobile no" placeholderTextColor={mutedColor} style={[styles.searchInput, { color: textColor, backgroundColor: 'transparent', paddingHorizontal: 0 }]} />
+          </View>
+        </View>
+        <TouchableOpacity style={styles.logoutButton} onPress={updateProfile} disabled={loading}>
+          <Text style={styles.logoutButtonText}> {loading ? "Saving..." : "Save"}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

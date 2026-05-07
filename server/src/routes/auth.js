@@ -34,20 +34,20 @@ router.post("/login", async (req, res, next) => {
 
 router.post("/register", async (req, res, next) => {
   try {
-    const { email, password } = req.body || {};
-    if (!email || !password) {
+    const { email, password, mobileno } = req.body || {};
+    if (!email || !password || !mobileno) {
       return res
         .status(400)
-        .json({ message: "email and password are required" });
+        .json({ message: "email ,mobile and password are required" });
     }
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(409).json({ message: "Email already registered" });
     }
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ email, passwordHash });
+    const user = await User.create({ email, passwordHash, mobileno });
     const token = jwt.sign(
-      { sub: user.id, email: user.email },
+      { sub: user.id, email: user.email, mobileno: user.mobileno},
       process.env.JWT_SECRET || "dev-secret",
       { expiresIn: "7d" }
     );

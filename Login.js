@@ -13,12 +13,14 @@ import {
 import Constants from 'expo-constants';
 import { useScreenPrivacy } from './useScreenPrivacy';
 import { API_URL } from './src/config';
+import * as SecureStore from 'expo-secure-store';
 
 
 const LoginPage = ({ onLoginSuccess, onSignupSuccess, isDarkMode, onToggleDarkMode }) => {
   useScreenPrivacy();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mobileno,setMobileno] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -40,8 +42,18 @@ const LoginPage = ({ onLoginSuccess, onSignupSuccess, isDarkMode, onToggleDarkMo
         Alert.alert('Login failed', data?.message || 'Something went wrong');
         return;
       }
+      await SecureStore.setItemAsync(
+        "token",
+        data.token
+      );
+
+      console.log("TOKEN STORED:", data.token);
+
       Alert.alert('Success', 'Login successful!', [
-        { text: 'OK', onPress: () => onLoginSuccess(data) }
+        {
+          text: 'OK',
+          onPress: () => onLoginSuccess(data)
+        }
       ]);
     } catch (e) {
       Alert.alert('Network error', e?.message || 'Please check server connection');
@@ -49,7 +61,7 @@ const LoginPage = ({ onLoginSuccess, onSignupSuccess, isDarkMode, onToggleDarkMo
   };
 
   const handleSignUp = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!email || !mobileno|| !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -61,7 +73,7 @@ const LoginPage = ({ onLoginSuccess, onSignupSuccess, isDarkMode, onToggleDarkMo
       const res = await fetch(`${BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, mobileno }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -109,6 +121,59 @@ const LoginPage = ({ onLoginSuccess, onSignupSuccess, isDarkMode, onToggleDarkMo
             autoCapitalize="none"
           />
         </View>
+      {isSignUp && (
+  <View style={styles.inputContainer}>
+    <Text
+      style={[
+        styles.inputLabel,
+        isDarkMode && styles.inputLabelDark
+      ]}
+    >
+      Mobile Number
+    </Text>
+
+    <View
+      style={[
+        styles.phoneContainer,
+        isDarkMode && styles.phoneContainerDark
+      ]}
+    >
+
+      {/* COUNTRY CODE */}
+      <View style={styles.countryCodeContainer}>
+        <Text
+          style={[
+            styles.countryCodeText,
+            {
+              color: isDarkMode ? '#fff' : '#000'
+            }
+          ]}
+        >
+          +91
+        </Text>
+      </View>
+
+      {/* MOBILE INPUT */}
+      <TextInput
+        style={[
+          styles.phoneInput,
+          {
+            color: isDarkMode ? '#fff' : '#000'
+          }
+        ]}
+        placeholder="Enter mobile number"
+        placeholderTextColor={
+          isDarkMode ? '#666' : '#999'
+        }
+        value={mobileno}
+        onChangeText={setMobileno}
+        keyboardType="phone-pad"
+        maxLength={10}
+      />
+
+    </View>
+  </View>
+)}
 
         <View style={styles.inputContainer}>
           <Text style={[styles.inputLabel, isDarkMode && styles.inputLabelDark]}>Password</Text>
@@ -280,6 +345,42 @@ const styles = StyleSheet.create({
   darkModeIconDark: {
     fontSize: 24,
   },
+
+  phoneContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 12,
+  backgroundColor: '#f9f9f9',
+  overflow: 'hidden',
+},
+
+phoneContainerDark: {
+  backgroundColor: '#2a2a2a',
+  borderColor: '#444',
+},
+
+countryCodeContainer: {
+  paddingHorizontal: 14,
+  paddingVertical: 14,
+  borderRightWidth: 1,
+  borderRightColor: '#ccc',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+countryCodeText: {
+  fontSize: 16,
+  fontWeight: '600',
+},
+
+phoneInput: {
+  flex: 1,
+  paddingHorizontal: 14,
+  paddingVertical: 14,
+  fontSize: 16,
+},
 });
 
 export default LoginPage;
