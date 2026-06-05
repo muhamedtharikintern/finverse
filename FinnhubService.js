@@ -1,6 +1,8 @@
-const API_KEY = process.env.FINNHUB_KEY;
+const API_KEY = process.env.EXPO_PUBLIC_FINNHUB_KEY;
 const WS_URL = `wss://ws.finnhub.io?token=${API_KEY}`;
 const REST_BASE = `https://finnhub.io/api/v1`;
+
+console.log('[Finhub] API Key loaded:', API_KEY ? '✅ ' + API_KEY.slice(0, 6) + '...' : '❌ MISSING');
 
 class FinnhubService {
   constructor() {

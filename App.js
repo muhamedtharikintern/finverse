@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { Text, View, Image, Animated, TouchableOpacity, Dimensions, ScrollView, TextInput, BackHandler, Platform, Modal, StyleSheet, SafeAreaView } from 'react-native';
+import { Text, View, Image, Animated, TouchableOpacity, Dimensions, ScrollView, TextInput, BackHandler, Platform, Modal, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
@@ -21,6 +21,141 @@ import { useScreenPrivacy } from './useScreenPrivacy';
 import 'react-native-gesture-handler';
 import { API_URL } from './src/config';
 import axios from "axios";
+
+// ── Finnhub live imports ──────────────────────────────────
+import { finnhubService } from './FinnhubService';
+import { useUSStockPrice } from './useUSStockPrice';
+import { useIndianStockPrice } from './useIndianStockPrice';
+import { INDICES, INDIAN_HOLDINGS, US_HOLDINGS } from './watchlist';
+
+// ─── Index Row (REST polling) ─────────────────────────────
+function IndexRow({ item, isDarkMode, onPress }) {
+  const quote = useIndianStockPrice(item.symbol);
+  const surface   = isDarkMode ? '#111827' : '#ffffff';
+  const textColor = isDarkMode ? '#fff' : '#0b1220';
+  const cardBg    = isDarkMode ? '#1f2937' : '#f4f6f9';
+  const isUp = (quote?.changePercent ?? 0) >= 0;
+
+  return (
+    <TouchableOpacity
+      style={[styles.indexCard, {
+        backgroundColor: surface,
+        borderColor: isDarkMode ? '#222' : '#eef0f4',
+      }]}
+      onPress={() => quote && onPress({ ...item, ...quote })}
+    >
+      <View style={[styles.iconSquare, { backgroundColor: cardBg, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontSize: 10, color: '#3b82f6', fontWeight: '700' }}>
+          {item.exchange}
+        </Text>
+      </View>
+
+      <View style={styles.indexTextWrap}>
+        <Text style={[styles.indexName, { color: textColor }]}>{item.name}</Text>
+        <Text style={[styles.indexSub, { color: '#3b82f6' }]}>
+          {quote ? `Open: ${quote.open?.toFixed(0)}` : 'Fetching...'}
+        </Text>
+      </View>
+
+      {quote ? (
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={[styles.indexValue, { color: textColor }]}>
+            {quote.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+          </Text>
+          <Text style={{ color: isUp ? '#00C896' : '#FF4D4D', fontSize: 11 }}>
+            {isUp ? '▲' : '▼'} {Math.abs(quote.changePercent).toFixed(2)}%
+          </Text>
+        </View>
+      ) : (
+        <ActivityIndicator size="small" color="#3b82f6" />
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// ─── Indian Holding Row (REST polling) ───────────────────
+function IndianHoldingRow({ item, isDarkMode, onPress }) {
+  const quote = useIndianStockPrice(item.symbol);
+  const surface    = isDarkMode ? '#111827' : '#ffffff';
+  const textColor  = isDarkMode ? '#fff' : '#0b1220';
+  const mutedColor = isDarkMode ? '#aeb4c1' : '#6b7280';
+  const cardBg     = isDarkMode ? '#1f2937' : '#f4f6f9';
+  const isUp = (quote?.changePercent ?? 0) >= 0;
+
+  return (
+    <TouchableOpacity
+      style={[styles.holdingCard, {
+        backgroundColor: surface,
+        borderColor: isDarkMode ? '#222' : '#eef0f4',
+      }]}
+      onPress={() => quote && onPress({ ...item, ...quote })}
+    >
+      <View style={[styles.holdingIcon, { backgroundColor: cardBg, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontSize: 9, color: '#10b981', fontWeight: '700' }}>NSE</Text>
+      </View>
+
+      <View style={styles.holdingTextWrap}>
+        <Text style={[styles.holdingName, { color: textColor }]}>{item.name}</Text>
+        <Text style={[styles.holdingSub, { color: mutedColor }]}>{item.shares} shares</Text>
+      </View>
+
+      {quote ? (
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={[styles.holdingValue, { color: textColor }]}>
+            ₹{quote.price.toFixed(2)}
+          </Text>
+          <Text style={{ color: isUp ? '#00C896' : '#FF4D4D', fontSize: 11 }}>
+            {isUp ? '▲' : '▼'} {Math.abs(quote.changePercent).toFixed(2)}%
+          </Text>
+        </View>
+      ) : (
+        <ActivityIndicator size="small" color="#10b981" />
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// ─── US Holding Row (WebSocket) ──────────────────────────
+function USHoldingRow({ item, isDarkMode, onPress }) {
+  const quote = useUSStockPrice(item.symbol);
+  const surface    = isDarkMode ? '#111827' : '#ffffff';
+  const textColor  = isDarkMode ? '#fff' : '#0b1220';
+  const mutedColor = isDarkMode ? '#aeb4c1' : '#6b7280';
+  const cardBg     = isDarkMode ? '#1f2937' : '#f4f6f9';
+  const isUp = (quote?.changePercent ?? 0) >= 0;
+
+  return (
+    <TouchableOpacity
+      style={[styles.holdingCard, {
+        backgroundColor: surface,
+        borderColor: isDarkMode ? '#222' : '#eef0f4',
+      }]}
+      onPress={() => quote && onPress({ ...item, ...quote })}
+    >
+      <View style={[styles.holdingIcon, { backgroundColor: cardBg, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ fontSize: 9, color: '#6C63FF', fontWeight: '700' }}>US</Text>
+      </View>
+
+      <View style={styles.holdingTextWrap}>
+        <Text style={[styles.holdingName, { color: textColor }]}>{item.name}</Text>
+        <Text style={[styles.holdingSub, { color: mutedColor }]}>{item.shares} shares</Text>
+      </View>
+
+      {quote ? (
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={[styles.holdingValue, { color: textColor }]}>
+            ${quote.price.toFixed(2)}
+          </Text>
+          <Text style={{ color: isUp ? '#00C896' : '#FF4D4D', fontSize: 11 }}>
+            {isUp ? '▲' : '▼'} {Math.abs(quote.changePercent).toFixed(2)}%
+          </Text>
+        </View>
+      ) : (
+        <ActivityIndicator size="small" color="#6C63FF" />
+      )}
+    </TouchableOpacity>
+  );
+}
 
 // Loading Screen Component
 const LoadingScreen = ({ onLoadingComplete, isDarkMode }) => {
@@ -928,6 +1063,12 @@ const HomePageContent = ({
   const [showGrowthOpportunities, setShowGrowthOpportunities] = useState(false);
   const [showChatBot, setShowChatBot] = useState(false);
 
+  // ── Connect WebSocket on mount, disconnect on unmount ──
+  useEffect(() => {
+    finnhubService.connectWS();
+    return () => finnhubService.disconnectAll();
+  }, []);
+
   useEffect(() => {
     const backAction = () => {
       if (showStockDetails) {
@@ -1321,8 +1462,10 @@ const HomePageContent = ({
           </>
         )}
 
+        {/* ── LIVE Market Indices & Holdings (replaces all static arrays) ── */}
         {activeSegment !== 2 && activeTopTab !== 1 && activeTopTab !== 2 && activeTopTab !== 3 && activeTopTab !== 4 && bottomActive !== 2 && (
           <>
+            {/* Market Indices — live via REST polling */}
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Market Indices</Text>
               <TouchableOpacity>
@@ -1330,63 +1473,49 @@ const HomePageContent = ({
               </TouchableOpacity>
             </View>
             <View style={styles.cardList}>
-              {[
-                { name: 'NIFTY 50', value: '17,500', change: '+1.2%' },
-                { name: 'Sensex', value: '59,000', change: '+0.8%' },
-              ].map((i) => (
-                <TouchableOpacity
-                  key={i.name}
-                  style={[styles.indexCard, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#eef0f4' }]}
-                  onPress={() => setShowStockDetails({
-                    name: i.name,
-                    symbol: i.name.split(' ')[0],
-                    price: parseFloat(i.value.replace(',', '')),
-                    change: 1.2,
-                    changePercent: 1.2,
-                    open: parseFloat(i.value.replace(',', '')),
-                    previousClose: parseFloat(i.value.replace(',', '')) - 100,
-                    dayLow: parseFloat(i.value.replace(',', '')) - 200,
-                    dayHigh: parseFloat(i.value.replace(',', '')) + 200,
-                    yearLow: parseFloat(i.value.replace(',', '')) - 1000,
-                    yearHigh: parseFloat(i.value.replace(',', '')) + 1000,
-                    exchange: 'NSE',
-                    type: 'index'
-                  })}
-                >
-                  <View style={[styles.iconSquare, { backgroundColor: cardBg }]} />
-                  <View style={styles.indexTextWrap}>
-                    <Text style={[styles.indexName, { color: textColor }]}>{i.name}</Text>
-                    <Text style={[styles.indexSub, { color: '#3b82f6' }]}>Current Value</Text>
-                  </View>
-                  <Text style={[styles.indexValue, { color: textColor }]}>{i.value}</Text>
-                </TouchableOpacity>
+              {INDICES.map((item) => (
+                <IndexRow
+                  key={item.symbol}
+                  item={item}
+                  isDarkMode={isDarkMode}
+                  onPress={setShowStockDetails}
+                />
               ))}
             </View>
 
+            {/* Indian Holdings — live via REST polling */}
             <View style={styles.sectionHeaderRow}>
-              <Text style={[styles.sectionTitle, { color: textColor }]}>Current Holdings</Text>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>🇮🇳 Indian Holdings</Text>
               <TouchableOpacity>
                 <Text style={[styles.viewAll, { color: '#3b82f6' }]}>View All →</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.cardList}>
-              {[
-                { name: 'TechCorp Inc.', shares: '10 Shares', price: '$1,234.56' },
-                { name: 'Global Energy Ltd.', shares: '5 Shares', price: '$678.90' },
-                { name: 'Health Solutions Co.', shares: '20 Shares', price: '$3,456.78' },
-              ].map((h) => (
-                <TouchableOpacity
-                  key={h.name}
-                  style={[styles.holdingCard, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#eef0f4' }]}
-                  onPress={() => setShowStockDetails({ name: h.name, symbol: h.name.split(' ')[0], price: parseFloat(h.price.replace('$', '').replace(',', '')), change: '+2.5%' })}
-                >
-                  <View style={[styles.holdingIcon, { backgroundColor: cardBg }]} />
-                  <View style={styles.holdingTextWrap}>
-                    <Text style={[styles.holdingName, { color: textColor }]}>{h.name}</Text>
-                    <Text style={[styles.holdingSub, { color: mutedColor }]}>{h.shares}</Text>
-                  </View>
-                  <Text style={[styles.holdingValue, { color: textColor }]}>{h.price}</Text>
-                </TouchableOpacity>
+              {INDIAN_HOLDINGS.map((item) => (
+                <IndianHoldingRow
+                  key={item.symbol}
+                  item={item}
+                  isDarkMode={isDarkMode}
+                  onPress={setShowStockDetails}
+                />
+              ))}
+            </View>
+
+            {/* US Holdings — live via WebSocket */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={[styles.sectionTitle, { color: textColor }]}>🇺🇸 US Holdings</Text>
+              <TouchableOpacity>
+                <Text style={[styles.viewAll, { color: '#3b82f6' }]}>View All →</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.cardList}>
+              {US_HOLDINGS.map((item) => (
+                <USHoldingRow
+                  key={item.symbol}
+                  item={item}
+                  isDarkMode={isDarkMode}
+                  onPress={setShowStockDetails}
+                />
               ))}
             </View>
           </>
@@ -1398,18 +1527,13 @@ const HomePageContent = ({
               <Text style={[styles.sectionTitle, { color: textColor }]}>Market Indices</Text>
             </View>
             <View style={styles.cardList}>
-              {[
-                { name: 'NIFTY 50', value: '17,500' },
-                { name: 'Sensex', value: '59,000' },
-              ].map((i) => (
-                <View key={i.name} style={[styles.indexCard, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#eef0f4' }]}>
-                  <View style={[styles.iconSquare, { backgroundColor: cardBg }]} />
-                  <View style={styles.indexTextWrap}>
-                    <Text style={[styles.indexName, { color: textColor }]}>{i.name}</Text>
-                    <Text style={[styles.indexSub, { color: '#3b82f6' }]}>Current Value</Text>
-                  </View>
-                  <Text style={[styles.indexValue, { color: textColor }]}>{i.value}</Text>
-                </View>
+              {INDICES.map((item) => (
+                <IndexRow
+                  key={item.symbol}
+                  item={item}
+                  isDarkMode={isDarkMode}
+                  onPress={setShowStockDetails}
+                />
               ))}
             </View>
 
@@ -1508,18 +1632,13 @@ const HomePageContent = ({
               <Text style={[styles.sectionTitle, { color: textColor }]}>Market Indices</Text>
             </View>
             <View style={styles.cardList}>
-              {[
-                { name: 'NIFTY 50 ETF', value: '17,500' },
-                { name: 'Sensex ETF', value: '59,000' },
-              ].map((i) => (
-                <View key={i.name} style={[styles.indexCard, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#eef0f4' }]}>
-                  <View style={[styles.iconSquare, { backgroundColor: cardBg }]} />
-                  <View style={styles.indexTextWrap}>
-                    <Text style={[styles.indexName, { color: textColor }]}>{i.name}</Text>
-                    <Text style={[styles.indexSub, { color: '#3b82f6' }]}>Current Value</Text>
-                  </View>
-                  <Text style={[styles.indexValue, { color: textColor }]}>{i.value}</Text>
-                </View>
+              {INDICES.map((item) => (
+                <IndexRow
+                  key={item.symbol}
+                  item={item}
+                  isDarkMode={isDarkMode}
+                  onPress={setShowStockDetails}
+                />
               ))}
             </View>
 
@@ -1963,7 +2082,6 @@ const HomePageContent = ({
 };
 
 export default function App() {
-  // ─── FIX 3: BASE_URL declared at the TOP of App(), before any function that uses it ───
   const BASE_URL = API_URL;
 
   const [isLoading, setIsLoading] = useState(true);
@@ -1979,11 +2097,9 @@ export default function App() {
   const [authToken, setAuthToken] = useState(null);
   const [displayName, setDisplayName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
-  // ─── FIX 1: renamed from mobileno/setMobileNo to profileMobileno/setProfileMobileno ───
   const [profileMobileno, setProfileMobileno] = useState('');
   const [showEditProfile, setShowEditProfile] = useState(false);
 
-  // ─── FIX 3: saveDisplayName now uses BASE_URL which is declared above ───
   const saveDisplayName = async (name) => {
     try {
       if (!authToken) return;
@@ -2000,7 +2116,6 @@ export default function App() {
     } catch (_) { }
   };
 
-  // ─── FIX 2: handleSaveProfile no longer calls the non-existent setProfile() ───
   const handleSaveProfile = (updatedProfile) => {
     if (updatedProfile.name)     setDisplayName(updatedProfile.name);
     if (updatedProfile.email)    setProfileEmail(updatedProfile.email);
@@ -2008,7 +2123,6 @@ export default function App() {
     setShowEditProfile(false);
   };
 
-  // Check for persistent login
   useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -2172,7 +2286,6 @@ export default function App() {
     setAuthToken(null);
     setDisplayName('');
     setProfileEmail('');
-    // ─── FIX 1: use correct setter name ───
     setProfileMobileno('');
     setShowEditProfile(false);
   };
@@ -2204,7 +2317,6 @@ export default function App() {
       if (res.ok) {
         if (data?.displayName) setDisplayName(data.displayName);
         if (data?.email) setProfileEmail(data.email);
-        // ─── FIX 1: use correct setter name ───
         if (data?.mobileno) setProfileMobileno(data.mobileno);
         setShowEditProfile(false);
       }
