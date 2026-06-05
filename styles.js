@@ -109,6 +109,7 @@ export const styles = StyleSheet.create({
   },
   // Home specific styles
   homeHeader: {
+    height:167,
     paddingTop: 8,
     paddingBottom: 10,
     paddingHorizontal: 16,
@@ -166,7 +167,7 @@ export const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   headerTextWrap: {
-    flex: 1,
+    alignItems: 'center',
   },
   welcomeTiny: {
     fontSize: 12,
@@ -188,25 +189,34 @@ export const styles = StyleSheet.create({
   segmentRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 6,
   },
   segmentBtn: {
+    width: 114,
+    height: 41,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#dbe0ea',
     marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   segmentBtnOutline: {
     borderColor: '#2563eb',
     backgroundColor: 'transparent',
   },
   segmentBtnGradient: {
+    width: 114,
+    height: 41,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 6,
     marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   segmentActive: {
     backgroundColor: '#2563eb',

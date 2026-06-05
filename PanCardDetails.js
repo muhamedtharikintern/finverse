@@ -78,6 +78,14 @@ const PanCardDetails = ({ onPanComplete, isDarkMode, onToggleDarkMode, baseUrl, 
     setPanNumber(formatted);
   };
 
+  
+  const formatDateOfBirth = (text) => {
+    // Format as DD/MM/YYYY
+    const cleaned = text.replace(/[^0-9]/g, '');
+    const formatted = cleaned.replace(/(\d{2})(\d{2})(\d{4})/, '$1/$2/$3');
+    setDateOfBirth(formatted);
+  };
+
   return (
     <KeyboardAvoidingView
   style={{ flex: 1 }}
@@ -159,7 +167,7 @@ const PanCardDetails = ({ onPanComplete, isDarkMode, onToggleDarkMode, baseUrl, 
             placeholder="DD/MM/YYYY"
             placeholderTextColor={isDarkMode ? '#666' : '#999'}
             value={dateOfBirth}
-            onChangeText={setDateOfBirth}
+            onChangeText={formatDateOfBirth }
             keyboardType="numeric"
             maxLength={10}
           />

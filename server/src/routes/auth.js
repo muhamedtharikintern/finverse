@@ -26,7 +26,7 @@ router.post("/login", async (req, res, next) => {
       process.env.JWT_SECRET || "dev-secret",
       { expiresIn: "7d" }
     );
-    return res.status(200).json({ token, user: { id: user.id, email, verificationStep: user.verificationStep } });
+    return res.status(200).json({ token, user: { id: user.id, email, verificationStep: user.verificationStep,mobileno:user.mobileno } });
   } catch (err) {
     next(err);
   }
@@ -53,7 +53,7 @@ router.post("/register", async (req, res, next) => {
     );
     return res
       .status(201)
-      .json({ message: "registered", token, user: { id: user.id, email, verificationStep: user.verificationStep } });
+      .json({ message: "registered", token, user: { id: user.id, email, verificationStep: user.verificationStep,mobileno:user.mobileno} });
   } catch (err) {
     next(err);
   }

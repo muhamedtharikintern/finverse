@@ -36,6 +36,7 @@ router.get("/me", async (req, res, next) => {
     res.json({
       id: user.id,
       email: user.email,
+      mobileno: user.mobileno,
       verificationStep: user.verificationStep,
       pan: user.pan,
       aadhar: user.aadhar,

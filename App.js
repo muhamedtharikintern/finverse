@@ -18,10 +18,7 @@ import ChatBot from './ChatBot.js';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useScreenPrivacy } from './useScreenPrivacy';
-// import { NavigationContainer } from '@react-navigation/native';
-// import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import 'react-native-gesture-handler';
-// import RazorPayScreen from './RazorPayScreen.js';
 import { API_URL } from './src/config';
 import axios from "axios";
 
@@ -30,14 +27,12 @@ const LoadingScreen = ({ onLoadingComplete, isDarkMode }) => {
   const [fadeAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
-    // Fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 1000,
       useNativeDriver: true,
     }).start();
 
-    // Hide loading screen after 3 seconds
     const timer = setTimeout(() => {
       onLoadingComplete();
     }, 3000);
@@ -61,38 +56,95 @@ const LoadingScreen = ({ onLoadingComplete, isDarkMode }) => {
 
 
 // Profile Screen Component
-const EditProfileScreen = ({ isDarkMode, onBack, onSave, initialName, initialEmail, initialMobileno}) => {
+const EditProfileScreen = ({ isDarkMode, onBack, onSave, initialName, initialEmail, initialMobileno }) => {
   const textColor = isDarkMode ? '#fff' : '#0b1220';
   const mutedColor = isDarkMode ? '#aeb4c1' : '#6b7280';
   const surface = isDarkMode ? '#111827' : '#ffffff';
   const [name, setName] = useState(initialName || '');
   const [email, setEmail] = useState(initialEmail || '');
-  const [mobileno, setMobileno] = useState(initialMobileno || '');
+  const [mobileno, setMobileno] = useState(
+    initialMobileno ? String(initialMobileno) : ''
+  );
   const [loading, setLoading] = useState(false);
 
-  const updateProfile = async() =>{
-    try{
+  const [countryCode, setCountryCode] = useState('+91');
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
+
+  const countryCodes = [
+  { code: '+91',  flag: '🇮🇳', name: 'India' },
+  { code: '+1',   flag: '🇺🇸', name: 'United States' },
+  { code: '+1',   flag: '🇨🇦', name: 'Canada' },
+  { code: '+44',  flag: '🇬🇧', name: 'United Kingdom' },
+  { code: '+61',  flag: '🇦🇺', name: 'Australia' },
+  { code: '+49',  flag: '🇩🇪', name: 'Germany' },
+  { code: '+33',  flag: '🇫🇷', name: 'France' },
+  { code: '+81',  flag: '🇯🇵', name: 'Japan' },
+  { code: '+86',  flag: '🇨🇳', name: 'China' },
+  { code: '+82',  flag: '🇰🇷', name: 'South Korea' },
+  { code: '+65',  flag: '🇸🇬', name: 'Singapore' },
+  { code: '+971', flag: '🇦🇪', name: 'UAE' },
+  { code: '+966', flag: '🇸🇦', name: 'Saudi Arabia' },
+  { code: '+55',  flag: '🇧🇷', name: 'Brazil' },
+  { code: '+52',  flag: '🇲🇽', name: 'Mexico' },
+  { code: '+27',  flag: '🇿🇦', name: 'South Africa' },
+  { code: '+234', flag: '🇳🇬', name: 'Nigeria' },
+  { code: '+254', flag: '🇰🇪', name: 'Kenya' },
+  { code: '+20',  flag: '🇪🇬', name: 'Egypt' },
+  { code: '+62',  flag: '🇮🇩', name: 'Indonesia' },
+  { code: '+60',  flag: '🇲🇾', name: 'Malaysia' },
+  { code: '+63',  flag: '🇵🇭', name: 'Philippines' },
+  { code: '+66',  flag: '🇹🇭', name: 'Thailand' },
+  { code: '+84',  flag: '🇻🇳', name: 'Vietnam' },
+  { code: '+92',  flag: '🇵🇰', name: 'Pakistan' },
+  { code: '+880', flag: '🇧🇩', name: 'Bangladesh' },
+  { code: '+94',  flag: '🇱🇰', name: 'Sri Lanka' },
+  { code: '+977', flag: '🇳🇵', name: 'Nepal' },
+  { code: '+39',  flag: '🇮🇹', name: 'Italy' },
+  { code: '+34',  flag: '🇪🇸', name: 'Spain' },
+  { code: '+7',   flag: '🇷🇺', name: 'Russia' },
+  { code: '+31',  flag: '🇳🇱', name: 'Netherlands' },
+  { code: '+46',  flag: '🇸🇪', name: 'Sweden' },
+  { code: '+47',  flag: '🇳🇴', name: 'Norway' },
+  { code: '+45',  flag: '🇩🇰', name: 'Denmark' },
+  { code: '+358', flag: '🇫🇮', name: 'Finland' },
+  { code: '+41',  flag: '🇨🇭', name: 'Switzerland' },
+  { code: '+43',  flag: '🇦🇹', name: 'Austria' },
+  { code: '+32',  flag: '🇧🇪', name: 'Belgium' },
+  { code: '+351', flag: '🇵🇹', name: 'Portugal' },
+  { code: '+30',  flag: '🇬🇷', name: 'Greece' },
+  { code: '+48',  flag: '🇵🇱', name: 'Poland' },
+  { code: '+90',  flag: '🇹🇷', name: 'Turkey' },
+  { code: '+972', flag: '🇮🇱', name: 'Israel' },
+  { code: '+64',  flag: '🇳🇿', name: 'New Zealand' },
+  { code: '+54',  flag: '🇦🇷', name: 'Argentina' },
+  { code: '+56',  flag: '🇨🇱', name: 'Chile' },
+  { code: '+57',  flag: '🇨🇴', name: 'Colombia' },
+  { code: '+51',  flag: '🇵🇪', name: 'Peru' },
+];
+
+
+  const updateProfile = async () => {
+    try {
       setLoading(true);
 
-      // get token
       const token = await SecureStore.getItemAsync("token");
 
       const response = await axios.put(`${API_URL}/profile/me`,
         {
           displayName: name.trim(),
           email: email.trim().toLowerCase(),
-          mobileno: mobileno.trim(),
+          mobileno: mobileno.trim()
         },
         {
-          headers:{
-            Authorization : `Bearer ${token}`,
-            "Content-Type":"application/json",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
         }
       );
-      console.log("Updated: ",response.data);
+      console.log("Updated: ", response.data);
 
-      if(onSave){
+      if (onSave) {
         onSave({
           name: response.data.displayName,
           email: response.data.email,
@@ -101,57 +153,141 @@ const EditProfileScreen = ({ isDarkMode, onBack, onSave, initialName, initialEma
       }
 
       alert("Profile Updated Successfully");
-      onBack();
+      onBack && onBack();
 
-    } catch (error){
+    } catch (error) {
       console.log(error?.response?.data || error.message);
-
-      alert(error?.response?.data?.message ||"Update Failed");
-
-    } finally{
+      alert(error?.response?.data?.message || "Update Failed");
+    } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <View style={[styles.profileContainer, isDarkMode && styles.profileContainerDark]}>
-      <View style={[styles.profileHeader, { backgroundColor: surface, borderBottomColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
-        <View style={styles.profileHeaderRow}>
-          <TouchableOpacity onPress={onBack}><Text style={[styles.backButton, { color: '#3b82f6' }]}>←</Text></TouchableOpacity>
-          <Text style={[styles.profileHeaderTitle, { color: textColor }]}>Edit Profile</Text>
-          <View style={{ width: 24 }} />
+return (
+  <View style={[styles.profileContainer, isDarkMode && styles.profileContainerDark]}>
+    <View style={[styles.profileHeader, { backgroundColor: surface, borderBottomColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
+      <View style={styles.profileHeaderRow}>
+        <TouchableOpacity onPress={onBack}><Text style={[styles.backButton, { color: '#3b82f6' }]}>←</Text></TouchableOpacity>
+        <Text style={[styles.profileHeaderTitle, { color: textColor }]}>Edit Profile</Text>
+        <View style={{ width: 24 }} />
+      </View>
+    </View>
+
+    <ScrollView style={styles.profileContent} contentContainerStyle={{ paddingBottom: 100 }}>
+      {/* Display Name */}
+      <View style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.menuItemText, { color: mutedColor, marginBottom: 6 }]}>Display name</Text>
+          <TextInput value={name} onChangeText={setName} placeholder="Enter name" placeholderTextColor={mutedColor} style={[styles.searchInput, { color: textColor, backgroundColor: 'transparent', paddingHorizontal: 0 }]} />
         </View>
       </View>
-      <ScrollView style={styles.profileContent} contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.menuItemText, { color: mutedColor, marginBottom: 6 }]}>Display name</Text>
-            <TextInput value={name} onChangeText={setName} placeholder="Enter name" placeholderTextColor={mutedColor} style={[styles.searchInput, { color: textColor, backgroundColor: 'transparent', paddingHorizontal: 0 }]} />
+
+      {/* Email */}
+      <View style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.menuItemText, { color: mutedColor, marginBottom: 6 }]}>Email</Text>
+          <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Enter email" placeholderTextColor={mutedColor} style={[styles.searchInput, { color: textColor, backgroundColor: 'transparent', paddingHorizontal: 0 }]} />
+        </View>
+      </View>
+
+      {/* Mobile with Country Code */}
+      <View style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.menuItemText, { color: mutedColor, marginBottom: 6 }]}>Mobile number</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {/* Country Code Selector */}
+            <TouchableOpacity
+              onPress={() => setShowCountryPicker(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingRight: 10,
+                marginRight: 10,
+                borderRightWidth: 1,
+                borderRightColor: isDarkMode ? '#444' : '#d1d5db',
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>
+                {countryCodes.find(c => c.code === countryCode)?.flag}
+              </Text>
+              <Text style={{ color: textColor, marginLeft: 4, fontSize: 14 }}>{countryCode}</Text>
+              <Text style={{ color: mutedColor, marginLeft: 2, fontSize: 10 }}>▼</Text>
+            </TouchableOpacity>
+
+            {/* Phone Input */}
+            <TextInput
+              value={mobileno}
+              onChangeText={setMobileno}
+              placeholder="Enter mobile no"
+              placeholderTextColor={mutedColor}
+              keyboardType="phone-pad"
+              style={[styles.searchInput, { flex: 1, color: textColor, backgroundColor: 'transparent', paddingHorizontal: 0 }]}
+            />
           </View>
         </View>
-        <View style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.menuItemText, { color: mutedColor, marginBottom: 6 }]}>Email</Text>
-            <TextInput value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="Enter email" placeholderTextColor={mutedColor} style={[styles.searchInput, { color: textColor, backgroundColor: 'transparent', paddingHorizontal: 0 }]} />
-          </View>
+      </View>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={updateProfile} disabled={loading}>
+        <Text style={styles.logoutButtonText}>{loading ? "Saving..." : "Save"}</Text>
+      </TouchableOpacity>
+    </ScrollView>
+
+    {/* Country Code Picker Modal */}
+    <Modal
+      visible={showCountryPicker}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowCountryPicker(false)}
+    >
+      <TouchableOpacity
+        style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        activeOpacity={1}
+        onPress={() => setShowCountryPicker(false)}
+      >
+        <View style={{
+          backgroundColor: surface,
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          paddingTop: 12,
+          paddingBottom: 32,
+          maxHeight: '60%',
+        }}>
+          {/* Modal Handle */}
+          <View style={{ width: 36, height: 4, backgroundColor: isDarkMode ? '#555' : '#d1d5db', borderRadius: 2, alignSelf: 'center', marginBottom: 12 }} />
+          <Text style={{ color: textColor, fontSize: 16, fontWeight: '600', paddingHorizontal: 20, marginBottom: 12 }}>
+            Select Country Code
+          </Text>
+          <ScrollView>
+            {countryCodes.map((item, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => { setCountryCode(item.code); setShowCountryPicker(false); }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 13,
+                  paddingHorizontal: 20,
+                  backgroundColor: countryCode === item.code && item.name === countryCodes.find(c => c.code === countryCode)?.name
+                    ? (isDarkMode ? '#1e3a5f' : '#eff6ff')
+                    : 'transparent',
+                }}
+              >
+                <Text style={{ fontSize: 22, marginRight: 12 }}>{item.flag}</Text>
+                <Text style={{ color: textColor, fontSize: 15, flex: 1 }}>{item.name}</Text>
+                <Text style={{ color: mutedColor, fontSize: 15 }}>{item.code}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
-          <View style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.menuItemText, { color: mutedColor, marginBottom: 6 }]}>Enter mobile no</Text>
-            <TextInput value={mobileno} onChangeText={setMobileno} placeholder="Enter mobile no" placeholderTextColor={mutedColor} style={[styles.searchInput, { color: textColor, backgroundColor: 'transparent', paddingHorizontal: 0 }]} />
-          </View>
-        </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={updateProfile} disabled={loading}>
-          <Text style={styles.logoutButtonText}> {loading ? "Saving..." : "Save"}</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </View>
-  );
+      </TouchableOpacity>
+    </Modal>
+  </View>
+);
 };
 
 const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDisplayName, onEditPress, onToggleDarkMode, currentLanguage, onChangeLanguage, initialScreen }) => {
   useScreenPrivacy();
-  const [currentScreen, setCurrentScreen] = useState(initialScreen || 'account'); // account, settings, privacy, notifications, linked-banks, support
+  const [currentScreen, setCurrentScreen] = useState(initialScreen || 'account');
   const [notificationSettings, setNotificationSettings] = useState({
     transactionAlerts: false,
     marketingUpdates: false,
@@ -167,7 +303,6 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
   const [accessibility, setAccessibility] = useState({ largerText: false, reduceMotion: false, highContrast: false });
   const [privacy, setPrivacy] = useState({ oldPassword: '', newPassword: '', confirmPassword: '', twoFactor: false, biometric: false, question1: '', answer1: '', recoveryEmail: '' });
 
-  // Load biometric preference
   useEffect(() => {
     SecureStore.getItemAsync('biometricEnabled').then((val) => {
       if (val === 'true') {
@@ -190,29 +325,25 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
   const screenHeight = Dimensions.get('window').height;
   const settingsSheetY = useRef(new Animated.Value(screenHeight)).current;
 
-  // Handle Android back button
   useEffect(() => {
     const backAction = () => {
       if (currentScreen === 'account') {
-        onBack(); // Close profile screen
-        return true; // Prevent default behavior
+        onBack();
+        return true;
       } else {
-        setCurrentScreen('account'); // Go back to account screen
-        return true; // Prevent default behavior
+        setCurrentScreen('account');
+        return true;
       }
     };
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-
     return () => backHandler.remove();
   }, [currentScreen, onBack]);
 
-  // Sync when initialScreen prop changes
   useEffect(() => {
     if (initialScreen) setCurrentScreen(initialScreen);
   }, [initialScreen]);
 
-  // Animate Settings sheet open/close
   useEffect(() => {
     if (currentScreen === 'settings') {
       Animated.timing(settingsSheetY, {
@@ -250,7 +381,6 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
 
   const renderAccountScreen = () => (
     <ScrollView style={styles.profileContent} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* Profile Section */}
       <View style={styles.profileSection}>
         <View style={styles.profileImageContainer}>
           <Image source={require('./assets/icon.png')} style={styles.profileImage} />
@@ -261,7 +391,6 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
         </TouchableOpacity>
       </View>
 
-      {/* Invite Friends */}
       <TouchableOpacity style={[styles.actionItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
         <View style={styles.actionLeft}>
           <Text style={styles.actionIcon}>+</Text>
@@ -270,7 +399,6 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
         <Text style={[styles.actionArrow, { color: mutedColor }]}>›</Text>
       </TouchableOpacity>
 
-      {/* Account & Settings Section */}
       <View style={styles.sectionTitle}>
         <Text style={[styles.sectionTitleText, { color: textColor }]}>Account & Settings</Text>
       </View>
@@ -281,7 +409,7 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
         { icon: '❓', title: 'Support' },
         { icon: '🛡️', title: 'Privacy & Security' },
         { icon: '🔔', title: 'Notifications' },
-      ].map((item, index) => (
+      ].map((item) => (
         <TouchableOpacity
           key={item.title}
           style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}
@@ -301,7 +429,6 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
         </TouchableOpacity>
       ))}
 
-      {/* Log out button */}
       <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
         <Text style={styles.logoutButtonText}>Log out</Text>
       </TouchableOpacity>
@@ -495,7 +622,6 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
 
   const renderPrivacyBiometric = () => (
     <ScrollView style={styles.profileContent} contentContainerStyle={{ paddingBottom: 100 }}>
-      {/* Privacy protection for this screen */}
       <View style={[styles.menuItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
         <View style={styles.menuItemLeft}>
           <Text style={styles.menuItemIcon}>👆</Text>
@@ -583,7 +709,7 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
           { icon: '🔔', title: 'Transaction Alerts', description: 'Receive real-time updates on your account activity.', key: 'transactionAlerts' },
           { icon: '📢', title: 'Marketing Updates', description: 'Stay informed about new features, promotions, and offers.', key: 'marketingUpdates' },
           { icon: '🛡️', title: 'Security Alerts', description: 'Get immediate notifications about potential security issues.', key: 'securityAlerts' },
-        ].map((item, index) => (
+        ].map((item) => (
           <View key={item.title} style={[styles.notificationItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
             <View style={styles.notificationItemLeft}>
               <Text style={styles.notificationItemIcon}>{item.icon}</Text>
@@ -608,7 +734,7 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
         {[
           { icon: '📱', title: 'Push Notifications', description: 'Receive alerts directly on your device.', key: 'pushNotifications' },
           { icon: '📧', title: 'Email Notifications', description: 'Get notifications delivered to your email inbox.', key: 'emailNotifications' },
-        ].map((item, index) => (
+        ].map((item) => (
           <View key={item.title} style={[styles.notificationItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
             <View style={styles.notificationItemLeft}>
               <Text style={styles.notificationItemIcon}>{item.icon}</Text>
@@ -668,7 +794,7 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
           { icon: '💬', title: 'Chat with us', description: 'Get help in real-time' },
           { icon: '📧', title: 'Email support', description: 'Email us for assistance' },
           { icon: '📞', title: 'Phone support', description: 'Call us for immediate help' },
-        ].map((item, index) => (
+        ].map((item) => (
           <TouchableOpacity key={item.title} style={[styles.supportItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
             <View style={styles.supportItemLeft}>
               <Text style={styles.supportItemIcon}>{item.icon}</Text>
@@ -686,7 +812,7 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
         {[
           { icon: '🎯', title: 'Report an issue', description: 'Report a problem or bug' },
           { icon: '📄', title: 'Submit a request', description: 'Submit a support request' },
-        ].map((item, index) => (
+        ].map((item) => (
           <TouchableOpacity key={item.title} style={[styles.supportItem, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
             <View style={styles.supportItemLeft}>
               <Text style={styles.supportItemIcon}>{item.icon}</Text>
@@ -749,13 +875,10 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
     <View style={[styles.profileContainer, isDarkMode && styles.profileContainerDark]}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
 
-      {/* Header */}
       <View style={[styles.profileHeader, { backgroundColor: surface, borderBottomColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
         <View style={styles.profileHeaderRow}>
           <TouchableOpacity onPress={currentScreen === 'account' ? onBack : () => setCurrentScreen('account')}>
-            <Text style={[styles.backButton, { color: '#3b82f6' }]}>
-              {currentScreen === 'account' ? '←' : '←'}
-            </Text>
+            <Text style={[styles.backButton, { color: '#3b82f6' }]}>←</Text>
           </TouchableOpacity>
           <Text style={[styles.profileHeaderTitle, { color: textColor }]}>{getScreenTitle()}</Text>
           <TouchableOpacity onPress={onBack}>
@@ -764,30 +887,40 @@ const ProfileScreen = ({ isDarkMode, onBack, onLogout, displayName, onSaveDispla
         </View>
       </View>
 
-      {/* Render account and other screens. If settings is active, keep Account in the background */}
       {currentScreen !== 'settings' ? renderCurrentScreen() : renderAccountScreen()}
-
-      {/* Settings as animated bottom sheet */}
       {currentScreen === 'settings' && renderSettingsScreen()}
     </View>
   );
 };
 
 // Homepage Component
-
-const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkMode, onLogout, displayName, profileEmail, onEditProfile, onOpenProfile, showEditProfile, onOpenEditProfile, onCloseEditProfile, onSaveProfile, currentLanguage, onChangeLanguage }) => {
-  if (showGuide) {
-    return <QuickStartGuide onComplete={onGuideComplete} isDarkMode={isDarkMode} />;
-  }
+const HomePageContent = ({
+  showGuide,
+  onGuideComplete,
+  isDarkMode,
+  onToggleDarkMode,
+  onLogout,
+  displayName,
+  profileEmail,
+  profileMobileno,
+  onEditProfile,
+  onOpenProfile,
+  showEditProfile,
+  onOpenEditProfile,
+  onCloseEditProfile,
+  onSaveProfile,
+  currentLanguage,
+  onChangeLanguage
+}) => {
 
   const textColor = isDarkMode ? '#fff' : '#0b1220';
   const mutedColor = isDarkMode ? '#aeb4c1' : '#6b7280';
   const cardBg = isDarkMode ? '#1f2937' : '#f4f6f9';
   const surface = isDarkMode ? '#111827' : '#ffffff';
-  const [showStockDetails, setShowStockDetails] = useState(false);
-  const [activeTopTab, setActiveTopTab] = useState(0); // 0 Stocks, 1 Mutual Funds, 2 Gold, 3 ETFs, 4 Coins
-  const [activeSegment, setActiveSegment] = useState(0); // 0 Investor, 1 Trader, 2 Finance
-  const [bottomActive, setBottomActive] = useState(0); // 0 Home, 1 Portfolio, 2 Payments
+  const [showStockDetails, setShowStockDetails] = useState(null);
+  const [activeTopTab, setActiveTopTab] = useState(0);
+  const [activeSegment, setActiveSegment] = useState(0);
+  const [bottomActive, setBottomActive] = useState(0);
   const [showMoneyTransactionPage, setShowMoneyTransactionPage] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showPayContactPage, setShowPayContactPage] = useState(false);
@@ -795,7 +928,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
   const [showGrowthOpportunities, setShowGrowthOpportunities] = useState(false);
   const [showChatBot, setShowChatBot] = useState(false);
 
-  // Handle navigation to StockDetails
   useEffect(() => {
     const backAction = () => {
       if (showStockDetails) {
@@ -804,9 +936,11 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
       }
       return false;
     };
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    const backHandler = BackHandler.addEventListener("hardwareBackPress", backAction);
     return () => backHandler.remove();
   }, [showStockDetails]);
+
   const [profileInitialScreen, setProfileInitialScreen] = useState('account');
   const homeSettingsY = useRef(new Animated.Value(Dimensions.get('window').height)).current;
   const [contacts] = useState([
@@ -822,30 +956,27 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
   const [payNote, setPayNote] = useState('');
   const [paySuccess, setPaySuccess] = useState(false);
 
-  // Handle Android back button for HomePage
   useEffect(() => {
     const backAction = () => {
       if (showMoneyTransactionPage) {
         setShowMoneyTransactionPage(false);
-        return true; // Prevent default behavior
+        return true;
       }
       if (showProfile) {
         setShowProfile(false);
-        return true; // Prevent default behavior
+        return true;
       }
       if (showSettings) {
         setShowSettings(false);
         return true;
       }
-      return false; // Allow default behavior (exit app)
+      return false;
     };
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-
     return () => backHandler.remove();
   }, [showMoneyTransactionPage, showProfile, showPayContactPage, showSettings]);
 
-  // Animate Home settings sheet
   useEffect(() => {
     Animated.timing(homeSettingsY, {
       toValue: showSettings ? 0 : Dimensions.get('window').height,
@@ -873,11 +1004,14 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
           'Welcome'
   );
 
+  if (showGuide) {
+    return <QuickStartGuide onComplete={onGuideComplete} isDarkMode={isDarkMode} />;
+  }
+
   return (
     <View style={[styles.container, isDarkMode && styles.containerDark]}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
 
-      {/* Simple Top Header */}
       <View style={[styles.simpleTopHeader, { backgroundColor: surface, borderBottomColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
         <TouchableOpacity style={[styles.roundIconBtn, { backgroundColor: '#eef2ff' }]} onPress={() => setShowSettings(true)}>
           <Text style={[styles.roundIconText, { color: '#2563eb' }]}>⚙️</Text>
@@ -888,7 +1022,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
         </TouchableOpacity>
       </View>
 
-      {/* Top welcome header - hidden on payments page */}
       {bottomActive !== 2 && (
         <View style={[styles.homeHeader, { backgroundColor: surface, borderBottomColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
           {bottomActive === 1 && (
@@ -897,20 +1030,17 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
             </View>
           )}
 
-
           <View style={styles.headerRow}>
             <TouchableOpacity style={styles.avatarWrap} onPress={() => { setProfileInitialScreen('account'); setShowProfile(true); }}>
               <Image source={require('./assets/icon.png')} style={styles.avatar} />
             </TouchableOpacity>
             <View style={styles.headerTextWrap}>
-              <Text style={[styles.welcomeTiny, { color: mutedColor }]}>{welcomeWord} {displayName || 'User'}</Text>
               <Text style={[styles.userName, { color: textColor }]}>{displayName || 'User'}</Text>
               <Text style={[styles.portfolioTiny, { color: mutedColor }]}>Portfolio Value</Text>
               <Text style={[styles.portfolioValue, { color: textColor }]}>$17,457.00</Text>
             </View>
           </View>
 
-          {/* Segmented buttons */}
           <View style={styles.segmentRow}>
             {['Invest', 'Trade', 'Finance'].map((label, idx) => (
               activeSegment === idx ? (
@@ -1023,7 +1153,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
         </View>
       )}
 
-      {/* Payment page header - only visible on payments page */}
       {bottomActive === 2 && (
         <View style={[styles.paymentHeader, { backgroundColor: surface, borderBottomColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
           <View style={styles.paymentHeaderRow}>
@@ -1038,7 +1167,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
       )}
 
       <ScrollView style={styles.scroll} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Top tabs - hidden on payments page */}
         {bottomActive !== 2 && (
           <View style={styles.topTabsRow}>
             {['Stocks', 'Mutual Funds', 'Gold', 'ETFs', 'Coins'].map((t, idx) => (
@@ -1049,7 +1177,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
           </View>
         )}
 
-        {/* Search - hidden on payments page */}
         {bottomActive !== 2 && (
           <View style={[styles.searchWrap, { backgroundColor: cardBg }]}>
             <Text style={styles.searchIcon}>🔎</Text>
@@ -1061,7 +1188,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
           </View>
         )}
 
-        {/* Sub tabs - hidden on payments page */}
         {bottomActive !== 2 && (
           <View style={styles.subTabsRow}>
             {['Explore', 'Holdings', 'Watchlist'].map((t, idx) => (
@@ -1072,7 +1198,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
           </View>
         )}
 
-        {/* Content switches by bottom tab and top tab */}
         {bottomActive === 0 && (
           <View>
             <TouchableOpacity
@@ -1111,9 +1236,9 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
             </TouchableOpacity>
           </View>
         )}
+
         {bottomActive === 1 && (
           <>
-            {/* Portfolio header summary cards */}
             <View style={styles.summaryRow}>
               <View style={[styles.summaryCard, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
                 <Text style={[styles.summaryValue, { color: textColor }]}>$10,457.00</Text>
@@ -1125,7 +1250,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
               </View>
             </View>
 
-            {/* Middle card varies by segment */}
             <View style={[styles.panelCard, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
               <View style={styles.panelHeaderRow}>
                 <Text style={[styles.panelTitle, { color: textColor }]}>{activeSegment === 1 ? 'Your Positions' : 'Your Portfolio'}</Text>
@@ -1149,7 +1273,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
               </TouchableOpacity>
             </View>
 
-            {/* Lower cards */}
             {activeSegment === 0 && (
               <View style={[styles.panelCard, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
                 <Text style={[styles.panelTitle, { color: textColor }]}>Insurance Summary</Text>
@@ -1197,9 +1320,9 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
             </View>
           </>
         )}
+
         {activeSegment !== 2 && activeTopTab !== 1 && activeTopTab !== 2 && activeTopTab !== 3 && activeTopTab !== 4 && bottomActive !== 2 && (
           <>
-            {/* Market Indices */}
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Market Indices</Text>
               <TouchableOpacity>
@@ -1240,7 +1363,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
               ))}
             </View>
 
-            {/* Current Holdings */}
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Current Holdings</Text>
               <TouchableOpacity>
@@ -1272,7 +1394,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
 
         {activeSegment !== 2 && activeTopTab === 1 && bottomActive !== 2 && (
           <>
-            {/* Market Indices for Mutual Funds */}
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Market Indices</Text>
             </View>
@@ -1292,12 +1413,11 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
               ))}
             </View>
 
-            {/* All Mutual Funds with filters */}
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>All Mutual Funds</Text>
             </View>
             <View style={styles.filterRow}>
-              {['Fund Type', 'Performance', 'Risk Level'].map((c, idx) => (
+              {['Fund Type', 'Performance', 'Risk Level'].map((c) => (
                 <View key={c} style={[styles.chip, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
                   <Text style={[styles.chipText, { color: textColor }]}>{c}</Text>
                   <Text style={[styles.chipArrow, { color: mutedColor }]}>▾</Text>
@@ -1328,7 +1448,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
 
         {activeSegment !== 2 && activeTopTab === 2 && bottomActive !== 2 && (
           <>
-            {/* Gold Funds */}
             <View style={styles.sectionHeaderRow}>
               <View>
                 <Text style={[styles.sectionTitle, { color: textColor }]}>GOLD Funds</Text>
@@ -1355,7 +1474,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
               <Text style={[styles.viewAll, { color: '#3b82f6' }]}>View All →</Text>
             </View>
 
-            {/* Gold ETFs */}
             <View style={styles.sectionHeaderRow}>
               <View>
                 <Text style={[styles.sectionTitle, { color: textColor }]}>GOLD ETFs</Text>
@@ -1386,7 +1504,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
 
         {activeSegment !== 2 && activeTopTab === 3 && bottomActive !== 2 && (
           <>
-            {/* ETFs Section */}
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>Market Indices</Text>
             </View>
@@ -1437,7 +1554,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
 
         {activeSegment !== 2 && activeTopTab === 4 && bottomActive !== 2 && (
           <>
-            {/* Coins Section */}
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionTitle, { color: textColor }]}>All Coins</Text>
             </View>
@@ -1473,8 +1589,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
 
         {bottomActive === 2 && (
           <>
-            {/* Payment Page Interface */}
-            {/* Main Balance Card */}
             <View style={[styles.balanceCard, { backgroundColor: '#4F46E5' }]}>
               <View style={styles.balanceCardContent}>
                 <View style={styles.balanceProfileSection}>
@@ -1500,7 +1614,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
               </View>
             </View>
 
-            {/* Money Transaction Section */}
             <View style={styles.moneyTransactionSection}>
               <Text style={[styles.moneyTransactionTitle, { color: textColor }]}>Money Transaction</Text>
               <View style={styles.transactionOptionsRow}>
@@ -1535,7 +1648,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
               </TouchableOpacity>
             </View>
 
-            {/* Transactions Section */}
             <View style={styles.transactionsSection}>
               <Text style={[styles.transactionsTitle, { color: textColor }]}>Transactions</Text>
               <View style={styles.transactionsList}>
@@ -1564,10 +1676,8 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
           </>
         )}
 
-        {/* Money Transaction Page */}
         {showMoneyTransactionPage && (
           <View style={[styles.moneyTransactionPage, { backgroundColor: isDarkMode ? '#1a1a1a' : '#ffffff' }]}>
-            {/* Header */}
             <View style={[styles.moneyTransactionHeader, { backgroundColor: surface, borderBottomColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
               <TouchableOpacity onPress={() => setShowMoneyTransactionPage(false)}>
                 <Text style={[styles.backButton, { color: '#3b82f6' }]}>← Back</Text>
@@ -1577,12 +1687,10 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
             </View>
 
             <ScrollView style={styles.moneyTransactionContent} contentContainerStyle={{ paddingBottom: 100 }}>
-              {/* Welcome */}
               <View style={styles.welcomeSection}>
                 <Text style={[styles.welcomeTitle, { color: textColor }]}>Welcome, {displayName || 'User'}</Text>
               </View>
 
-              {/* Balance Card */}
               <View style={[styles.balanceCardNew, { backgroundColor: '#4F46E5' }]}>
                 <View style={styles.balanceCardTop}>
                   <Text style={styles.balanceLabel}>Balance</Text>
@@ -1595,13 +1703,11 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
                 </View>
               </View>
 
-              {/* Add Account Button */}
               <TouchableOpacity style={styles.addAccountButton}>
                 <Text style={styles.addAccountIcon}>+</Text>
                 <Text style={styles.addAccountText}>Add New Account</Text>
               </TouchableOpacity>
 
-              {/* Portfolio Card */}
               <View style={[styles.portfolioCardNew, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#eef0f4' }]}>
                 <Text style={[styles.portfolioTitleNew, { color: textColor }]}>Your Portfolio</Text>
                 <View style={styles.portfolioValueSection}>
@@ -1626,7 +1732,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
                 </TouchableOpacity>
               </View>
 
-              {/* Insurance Card */}
               <View style={[styles.insuranceCardNew, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#eef0f4' }]}>
                 <View style={styles.insuranceHeaderNew}>
                   <Text style={[styles.insuranceTitleNew, { color: textColor }]}>Insurance Summary</Text>
@@ -1651,7 +1756,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
                 </TouchableOpacity>
               </View>
 
-              {/* Recent Activity Card */}
               <View style={[styles.recentActivityCardNew, { backgroundColor: surface, borderColor: isDarkMode ? '#222' : '#eef0f4' }]}>
                 <Text style={[styles.recentActivityTitleNew, { color: textColor }]}>Recent Activity</Text>
                 <View style={styles.activityListNew}>
@@ -1677,7 +1781,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
               </View>
             </ScrollView>
 
-            {/* Bottom Nav for Money Transaction Page */}
             <View style={[styles.bottomBar, { backgroundColor: surface, borderTopColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
               {['Home', 'Portfolio', 'Transactions', 'Payments', 'Profile'].map((label, idx) => (
                 <TouchableOpacity key={label} style={styles.bottomItem} onPress={() => setBottomActive(idx)}>
@@ -1693,7 +1796,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
 
         {activeSegment === 2 && bottomActive !== 2 && (
           <>
-            {/* Finance: Buy Loan list */}
             <View style={styles.sectionHeaderRow}>
               <View>
                 <Text style={[styles.sectionTitle, { color: textColor }]}>Buy Loan</Text>
@@ -1732,7 +1834,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
         )}
       </ScrollView>
 
-      {/* Chat FAB */}
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: '#7c4dff' }]}
         onPress={() => setShowChatBot(!showChatBot)}
@@ -1740,7 +1841,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
         <Text style={styles.fabIcon}>💬</Text>
       </TouchableOpacity>
 
-      {/* ChatBot Component */}
       {showChatBot && (
         <ChatBot
           isDarkMode={isDarkMode}
@@ -1748,7 +1848,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
         />
       )}
 
-      {/* Bottom Nav (static) */}
       <View style={[styles.bottomBar, { backgroundColor: surface, borderTopColor: isDarkMode ? '#222' : '#e6e8ed' }]}>
         {['Home', 'Portfolio', 'Payments'].map((label, idx) => (
           <TouchableOpacity key={label} style={styles.bottomItem} onPress={() => setBottomActive(idx)}>
@@ -1760,7 +1859,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
         ))}
       </View>
 
-      {/* Profile Screen Overlay */}
       {showProfile && !showEditProfile && (
         <ProfileScreen
           isDarkMode={isDarkMode}
@@ -1784,10 +1882,10 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
           onSave={onSaveProfile}
           initialName={displayName}
           initialEmail={profileEmail}
+          initialMobileno={profileMobileno}
         />
       )}
 
-      {/* Stock Details Screen */}
       <Modal
         visible={!!showStockDetails}
         animationType="slide"
@@ -1804,7 +1902,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
         )}
       </Modal>
 
-      {/* Growth Opportunities Screen */}
       {showGrowthOpportunities && (
         <View style={[StyleSheet.absoluteFill, styles.overlay]}>
           <View style={[styles.profileContainer, isDarkMode && styles.profileContainerDark]}>
@@ -1816,25 +1913,20 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
         </View>
       )}
 
-      {/* Home Settings Bottom Sheet (Modal to enforce top-most overlay) */}
       <Modal visible={showSettings} transparent animationType="none" onRequestClose={() => setShowSettings(false)}>
         <View style={{ flex: 1 }}>
-          {/* Background blur */}
           <BlurView tint={isDarkMode ? 'dark' : 'light'} intensity={40} style={StyleSheet.absoluteFillObject} />
-          {/* Dim overlay to catch taps */}
           <TouchableOpacity style={[styles.settingsBackdrop, { backgroundColor: 'rgba(0,0,0,0.25)' }]} activeOpacity={1} onPress={() => setShowSettings(false)} />
           <Animated.View style={[styles.settingsSheet, { transform: [{ translateY: homeSettingsY }] }]}>
             <LinearGradient colors={[isDarkMode ? '#1f3b8a' : '#2563eb', isDarkMode ? '#0f172a' : '#1d4ed8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }}>
               <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 }}>
                 <Text style={[styles.profileHeaderTitle, { color: '#fff', textAlign: 'center' }]}>Settings</Text>
-                {/* Avatar + Name */}
                 <View style={{ alignItems: 'center', marginTop: 12, marginBottom: 12 }}>
                   <View style={[styles.profileImageContainer, { borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                     <Image source={require('./assets/icon.png')} style={styles.profileImage} />
                   </View>
                   <Text style={[styles.profileHeaderTitle, { color: '#fff', marginTop: 4 }]}>{displayName || 'User'}</Text>
                 </View>
-                {/* Edit Profile Pill */}
                 <TouchableOpacity style={styles.sheetPillBtn} onPress={() => { setShowSettings(false); setProfileInitialScreen('account'); setShowProfile(true); onOpenEditProfile && onOpenEditProfile(); }}>
                   <Text style={styles.sheetPillBtnText}>Edit Profile</Text>
                 </TouchableOpacity>
@@ -1857,7 +1949,6 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
                     </TouchableOpacity>
                   ))}
 
-                  {/* Logout pill */}
                   <TouchableOpacity style={[styles.sheetPillBtn, { marginTop: 16 }]} onPress={onLogout}>
                     <Text style={[styles.sheetPillBtnText, { color: '#0b1220' }]}>Log out</Text>
                   </TouchableOpacity>
@@ -1872,6 +1963,9 @@ const HomePageContent = ({ showGuide, onGuideComplete, isDarkMode, onToggleDarkM
 };
 
 export default function App() {
+  // ─── FIX 3: BASE_URL declared at the TOP of App(), before any function that uses it ───
+  const BASE_URL = API_URL;
+
   const [isLoading, setIsLoading] = useState(true);
   const [showGuide, setShowGuide] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
@@ -1885,7 +1979,11 @@ export default function App() {
   const [authToken, setAuthToken] = useState(null);
   const [displayName, setDisplayName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
+  // ─── FIX 1: renamed from mobileno/setMobileNo to profileMobileno/setProfileMobileno ───
+  const [profileMobileno, setProfileMobileno] = useState('');
   const [showEditProfile, setShowEditProfile] = useState(false);
+
+  // ─── FIX 3: saveDisplayName now uses BASE_URL which is declared above ───
   const saveDisplayName = async (name) => {
     try {
       if (!authToken) return;
@@ -1902,13 +2000,20 @@ export default function App() {
     } catch (_) { }
   };
 
+  // ─── FIX 2: handleSaveProfile no longer calls the non-existent setProfile() ───
+  const handleSaveProfile = (updatedProfile) => {
+    if (updatedProfile.name)     setDisplayName(updatedProfile.name);
+    if (updatedProfile.email)    setProfileEmail(updatedProfile.email);
+    if (updatedProfile.mobileno) setProfileMobileno(updatedProfile.mobileno);
+    setShowEditProfile(false);
+  };
+
   // Check for persistent login
   useEffect(() => {
     const restoreSession = async () => {
       try {
         const token = await SecureStore.getItemAsync('authToken');
         if (token) {
-          // Check if biometric is enabled
           const bioEnabled = await SecureStore.getItemAsync('biometricEnabled');
           if (bioEnabled === 'true') {
             const hasHardware = await LocalAuthentication.hasHardwareAsync();
@@ -1920,23 +2025,19 @@ export default function App() {
               });
               if (bioResult.success) {
                 setAuthToken(token);
-                // Assume logged in for now, verify token validity with metadata fetch
                 setIsLoggedIn(true);
                 setShowGuide(false);
                 setShowLogin(false);
               } else {
-                // If biometric failed or cancelled, remain on login/guide
                 return;
               }
             } else {
-              // Hardware not available, just log in
               setAuthToken(token);
               setIsLoggedIn(true);
               setShowGuide(false);
               setShowLogin(false);
             }
           } else {
-            // Biometric not enforced
             setAuthToken(token);
             setIsLoggedIn(true);
             setShowGuide(false);
@@ -1952,8 +2053,6 @@ export default function App() {
     restoreSession();
   }, []);
 
-  const BASE_URL = API_URL;
-
   const advanceStep = async (toStep) => {
     if (!authToken) return;
     try {
@@ -1965,14 +2064,10 @@ export default function App() {
         },
         body: JSON.stringify({ to: toStep }),
       });
-    } catch (_) {
-      // ignore for now; UX remains optimistic
-    }
+    } catch (_) { }
   };
 
-  const handleLoadingComplete = () => {
-    // setIsLoading(false); // Managed by restoreSession
-  };
+  const handleLoadingComplete = () => { };
 
   const handleGuideComplete = () => {
     setShowGuide(false);
@@ -1980,15 +2075,16 @@ export default function App() {
   };
 
   const handleLoginSuccess = (authData) => {
-    // authData: { token, user: { id, email, verificationStep } }
     const step = authData?.user?.verificationStep || 'pan';
     const token = authData?.token || null;
     if (token) {
       SecureStore.setItemAsync('authToken', token);
     }
+
+    if (authData?.user?.mobileno) setProfileMobileno(authData.user.mobileno);
+
     setAuthToken(token);
     setShowLogin(false);
-    // fetch profile to get PAN name for display
     if (token) {
       fetch(`${BASE_URL}/verification/me`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -1997,6 +2093,7 @@ export default function App() {
         .then((me) => {
           if (me?.pan?.name) setDisplayName(me.pan.name);
           if (me?.email) setProfileEmail(me.email);
+          if (me?.mobileno) setProfileMobileno(me.mobileno);
         })
         .catch(() => { });
     }
@@ -2042,7 +2139,6 @@ export default function App() {
     advanceStep('done');
     setShowKYCVerification(false);
     setIsLoggedIn(true);
-    // Refresh profile to capture latest PAN name
     if (authToken) {
       fetch(`${BASE_URL}/verification/me`, {
         headers: { Authorization: `Bearer ${authToken}` },
@@ -2065,7 +2161,6 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    // Reset to login screen
     setIsLoggedIn(false);
     setShowGuide(false);
     setShowLogin(true);
@@ -2073,16 +2168,15 @@ export default function App() {
     setShowAadharCard(false);
     setShowBankVerification(false);
     setShowKYCVerification(false);
-    setShowBankVerification(false);
-    setShowKYCVerification(false);
     SecureStore.deleteItemAsync('authToken');
     setAuthToken(null);
     setDisplayName('');
     setProfileEmail('');
+    // ─── FIX 1: use correct setter name ───
+    setProfileMobileno('');
     setShowEditProfile(false);
   };
 
-  // Ensure display name is loaded when entering home if missing
   useEffect(() => {
     if (isLoggedIn && authToken && !displayName) {
       fetch(`${BASE_URL}/verification/me`, {
@@ -2092,29 +2186,31 @@ export default function App() {
         .then((me) => {
           if (me?.pan?.name) setDisplayName(me.pan.name);
           if (me?.email) setProfileEmail(me.email);
+          if (me?.mobileno) setProfileMobileno(me.mobileno);
         })
         .catch(() => { });
     }
   }, [isLoggedIn, authToken, displayName]);
 
-  const saveProfile = async ({ name, email }) => {
+  const saveProfile = async ({ name, email, mobileno }) => {
     try {
       if (!authToken) return;
       const res = await fetch(`${BASE_URL}/profile/me`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
-        body: JSON.stringify({ displayName: name, email }),
+        body: JSON.stringify({ displayName: name, email, mobileno }),
       });
       const data = await res.json();
       if (res.ok) {
         if (data?.displayName) setDisplayName(data.displayName);
         if (data?.email) setProfileEmail(data.email);
+        // ─── FIX 1: use correct setter name ───
+        if (data?.mobileno) setProfileMobileno(data.mobileno);
         setShowEditProfile(false);
       }
     } catch (_) { }
   };
 
-  // const Stack = createNativeStackNavigator();
   return (
     <>
       {isLoading ? (
@@ -2145,6 +2241,7 @@ export default function App() {
           onLogout={handleLogout}
           displayName={displayName}
           profileEmail={profileEmail}
+          profileMobileno={profileMobileno}
           onEditProfile={saveDisplayName}
           showEditProfile={showEditProfile}
           onOpenEditProfile={() => setShowEditProfile(true)}
@@ -2154,15 +2251,6 @@ export default function App() {
           onChangeLanguage={handleChangeLanguage}
         />
       )}
-
-      {/* <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Home" component={HomePageContent} />
-        <Stack.Screen name="StockDetails" component={StockDetailsScreen} />
-        <Stack.Screen name="Razorpay" component={RazorPayScreen} />
-      </Stack.Navigator>
-    </NavigationContainer> */}
     </>
-    
-  );  
+  );
 }

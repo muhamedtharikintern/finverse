@@ -21,9 +21,9 @@ router.use(authMiddleware);
 
 router.get("/me", async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select("email displayName pan");
+    const user = await User.findById(req.userId).select("email displayName mobileno pan");
     if (!user) return res.status(404).json({ message: "Not found" });
-    return res.json({ id: user.id, email: user.email, displayName: user.displayName, pan: user.pan });
+    return res.json({ id: user.id, email: user.email, displayName: user.displayName, mobileno: user.mobileno,pan: user.pan });
   } catch (e) {
     next(e);
   }
